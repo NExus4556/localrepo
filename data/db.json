@@ -1,0 +1,76 @@
+{
+  "users": [
+    {
+      "id": "de38d204-6750-46c5-bf81-57c58abab070",
+      "role": "admin",
+      "email": "admin@jobportal.local",
+      "mobile": "9000000000",
+      "passwordHash": "$2a$12$.CL5tGwj4FUv/eEX0vOBjeHWbelJVsaE2wN6CkvDqG4dYEGzdAh4q",
+      "isEmailVerified": true,
+      "isMobileVerified": true,
+      "isSuspended": false,
+      "totp": {
+        "secret": "",
+        "pendingSecret": "",
+        "pendingIssuedAt": null,
+        "isEnabled": false,
+        "lastVerifiedAt": null
+      },
+      "messaging": {
+        "publicKey": null,
+        "encryptedPrivateKey": null,
+        "algorithm": "RSA-OAEP",
+        "updatedAt": null
+      },
+      "profile": {
+        "name": "Platform Admin",
+        "headline": "",
+        "location": "",
+        "education": "",
+        "experience": "",
+        "skills": [],
+        "profilePicture": "",
+        "bio": "",
+        "privacy": {
+          "headline": "public",
+          "location": "connections",
+          "education": "connections",
+          "experience": "connections",
+          "skills": "public",
+          "bio": "public"
+        }
+      },
+      "resume": null,
+      "createdAt": "2026-04-13T16:17:06.384Z",
+      "updatedAt": "2026-04-13T16:17:06.384Z",
+      "lastLoginAt": null
+    }
+  ],
+  "companies": [],
+  "jobs": [],
+  "applications": [],
+  "conversations": [],
+  "auditLogs": [
+    {
+      "id": "ca5b76d8-ba6b-438b-8da1-f5207ecd5fe8",
+      "timestamp": "2026-04-13T16:17:06.623Z",
+      "actorUserId": "de38d204-6750-46c5-bf81-57c58abab070",
+      "action": "ADMIN_BOOTSTRAP_CREATED",
+      "targetUserId": "de38d204-6750-46c5-bf81-57c58abab070",
+      "metadata": {
+        "email": "admin@jobportal.local"
+      },
+      "prevHash": "GENESIS",
+      "chainVersion": "HMAC_SHA256_V2",
+      "payloadDigest": "7093e863d2b9c3171d8364a3c9e98a5cd93e91d999112e3e65e5693886f84c81",
+      "signature": "555c6f06d8cfbf7910e61e99d997385b64099cbeada5d5cf6798060710ac24f6",
+      "hash": "555c6f06d8cfbf7910e61e99d997385b64099cbeada5d5cf6798060710ac24f6",
+      "blockchainVersion": "AUDIT_BLOCKCHAIN_V1",
+      "blockIndex": 0,
+      "previousBlockHash": "GENESIS",
+      "blockDifficulty": 0,
+      "blockNonce": 0,
+      "blockHash": "168d09f5083d0f44420dffb2c49ee9ea8868c4b980f4f04ccafcfe008bfbb61d"
+    }
+  ]
+}
