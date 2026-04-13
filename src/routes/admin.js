@@ -11,8 +11,8 @@ const {
 } = require("../portal-helpers");
 
 function registerAdminRoutes(app) {
-  app.get("/api/admin/overview", requireAuth, requireRole(["admin"]), (req, res) => {
-    const db = readDb();
+  app.get("/api/admin/overview", requireAuth, requireRole(["admin"]), async (req, res) => {
+    const db = await readDb();
     const totalMessages = db.conversations.reduce(
       (count, conversation) =>
         count + (Array.isArray(conversation.messages) ? conversation.messages.length : 0),
@@ -45,8 +45,8 @@ function registerAdminRoutes(app) {
     });
   });
 
-  app.get("/api/admin/users", requireAuth, requireRole(["admin"]), (req, res) => {
-    const db = readDb();
+  app.get("/api/admin/users", requireAuth, requireRole(["admin"]), async (req, res) => {
+    const db = await readDb();
     res.json({ users: db.users.map((user) => safeUserResponse(user)) });
   });
 
@@ -54,7 +54,7 @@ function registerAdminRoutes(app) {
     "/api/admin/users/:userId/suspension",
     requireAuth,
     requireRole(["admin"]),
-    (req, res) => {
+    async (req, res) => {
       const targetUserId = String(req.params.userId || "").trim();
       const isSuspended = req.body.isSuspended;
       const reason = sanitizeText(req.body.reason || "", 240);
@@ -69,7 +69,7 @@ function registerAdminRoutes(app) {
         return;
       }
 
-      const db = readDb();
+      const db = await readDb();
       const target = db.users.find((user) => user.id === targetUserId);
       if (!target) {
         res.status(404).json({ message: "Target user not found." });
@@ -84,7 +84,7 @@ function registerAdminRoutes(app) {
         targetUserId,
         metadata: { reason },
       });
-      writeDb(db);
+      await writeDb(db);
 
       res.json({
         message: isSuspended ? "User suspended." : "User reactivated.",
@@ -93,7 +93,7 @@ function registerAdminRoutes(app) {
     }
   );
 
-  app.delete("/api/admin/users/:userId", requireAuth, requireRole(["admin"]), (req, res) => {
+  app.delete("/api/admin/users/:userId", requireAuth, requireRole(["admin"]), async (req, res) => {
     const targetUserId = String(req.params.userId || "").trim();
     if (!targetUserId) {
       res.status(400).json({ message: "Target user id is required." });
@@ -105,7 +105,7 @@ function registerAdminRoutes(app) {
       return;
     }
 
-    const db = readDb();
+    const db = await readDb();
     const target = deleteUserRecord(db, targetUserId);
     if (!target) {
       res.status(404).json({ message: "Target user not found." });
@@ -118,15 +118,15 @@ function registerAdminRoutes(app) {
       targetUserId,
       metadata: { email: target.email, role: target.role },
     });
-    writeDb(db);
+    await writeDb(db);
 
     res.json({ message: "User deleted successfully." });
   });
 
-  app.get("/api/admin/audit-logs", requireAuth, requireRole(["admin"]), (req, res) => {
+  app.get("/api/admin/audit-logs", requireAuth, requireRole(["admin"]), async (req, res) => {
     const limit = Math.min(Math.max(Number(req.query.limit || 100), 1), 500);
     const search = sanitizeText(req.query.search || "", 80).toLowerCase();
-    const db = readDb();
+    const db = await readDb();
     let logs = db.auditLogs.slice().reverse();
 
     if (search) {

@@ -424,7 +424,7 @@ function createUniqueCompanySlug(db, name, excludeCompanyId = null) {
   return candidate;
 }
 
-function requireAuth(req, res, next) {
+async function requireAuth(req, res, next) {
   const authorizationHeader = req.headers.authorization || "";
   if (!authorizationHeader.startsWith("Bearer ")) {
     res.status(401).json({ message: "Missing Bearer token." });
@@ -435,7 +435,7 @@ function requireAuth(req, res, next) {
     const payload = verifyAuthToken(
       authorizationHeader.slice("Bearer ".length)
     );
-    const db = readDb();
+    const db = await readDb();
     const user = db.users.find((item) => item.id === payload.sub);
     if (!user) {
       res.status(401).json({ message: "User for this token no longer exists." });
@@ -732,8 +732,8 @@ function isRecruiterAuthorizedByApplication(db, recruiterUserId, ownerUserId) {
   );
 }
 
-function migrateUsersAndCollectionsIfNeeded() {
-  const db = readDb();
+async function migrateUsersAndCollectionsIfNeeded() {
+  const db = await readDb();
   let changed = false;
   const now = new Date().toISOString();
 
@@ -819,7 +819,7 @@ function migrateUsersAndCollectionsIfNeeded() {
   });
 
   if (changed) {
-    writeDb(db);
+    await writeDb(db);
   }
 }
 
@@ -881,8 +881,8 @@ function deleteUserRecord(db, userId) {
   return target;
 }
 
-function ensureDefaultAdminAccount() {
-  const db = readDb();
+async function ensureDefaultAdminAccount() {
+  const db = await readDb();
   if (db.users.some((user) => user.role === "admin")) {
     return;
   }
@@ -927,7 +927,7 @@ function ensureDefaultAdminAccount() {
     targetUserId: adminUser.id,
     metadata: { email: adminEmail },
   });
-  writeDb(db);
+  await writeDb(db);
 }
 
 module.exports = {

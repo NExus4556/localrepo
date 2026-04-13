@@ -29,8 +29,8 @@ const {
 } = require("../portal-helpers");
 
 function registerOpportunityRoutes(app) {
-  app.get("/api/companies", (req, res) => {
-    const db = readDb();
+  app.get("/api/companies", async (req, res) => {
+    const db = await readDb();
     const query = sanitizeText(req.query.q || "", 120).toLowerCase();
 
     const companies = db.companies
@@ -61,8 +61,8 @@ function registerOpportunityRoutes(app) {
     res.json({ companies });
   });
 
-  app.get("/api/companies/mine", requireAuth, requireRole(["recruiter", "admin"]), (req, res) => {
-    const db = readDb();
+  app.get("/api/companies/mine", requireAuth, requireRole(["recruiter", "admin"]), async (req, res) => {
+    const db = await readDb();
     const actor = db.users.find((item) => item.id === req.auth.userId);
     const managedCompanyIds = new Set(getManagedCompanyIds(db, actor));
     const companies = db.companies
@@ -87,7 +87,7 @@ function registerOpportunityRoutes(app) {
     res.json({ companies });
   });
 
-  app.post("/api/companies", requireAuth, requireRole(["recruiter", "admin"]), (req, res) => {
+  app.post("/api/companies", requireAuth, requireRole(["recruiter", "admin"]), async (req, res) => {
     const name = sanitizeText(req.body.name, 120);
     const description = sanitizeMultilineText(req.body.description, 1200);
     const location = sanitizeText(req.body.location, 120);
@@ -103,7 +103,7 @@ function registerOpportunityRoutes(app) {
       return;
     }
 
-    const db = readDb();
+    const db = await readDb();
     const invalidAdmin = adminUserIds.find((userId) => {
       const candidate = db.users.find((user) => user.id === userId);
       return !candidate || !["recruiter", "admin"].includes(candidate.role);
@@ -136,7 +136,7 @@ function registerOpportunityRoutes(app) {
       targetUserId: req.auth.userId,
       metadata: { companyId: company.id, companyName: company.name },
     });
-    writeDb(db);
+    await writeDb(db);
 
     res.status(201).json({
       message: "Company page created.",
@@ -144,8 +144,8 @@ function registerOpportunityRoutes(app) {
     });
   });
 
-  app.patch("/api/companies/:companyId", requireAuth, requireRole(["recruiter", "admin"]), (req, res) => {
-    const db = readDb();
+  app.patch("/api/companies/:companyId", requireAuth, requireRole(["recruiter", "admin"]), async (req, res) => {
+    const db = await readDb();
     const actor = db.users.find((item) => item.id === req.auth.userId);
     const company = getCompanyById(db, sanitizeText(req.params.companyId, 80));
     if (!company) {
@@ -195,7 +195,7 @@ function registerOpportunityRoutes(app) {
       targetUserId: actor.id,
       metadata: { companyId: company.id, fields: Object.keys(req.body || {}) },
     });
-    writeDb(db);
+    await writeDb(db);
 
     res.json({
       message: "Company updated.",
@@ -203,8 +203,8 @@ function registerOpportunityRoutes(app) {
     });
   });
 
-  app.get("/api/companies/:companyId", (req, res) => {
-    const db = readDb();
+  app.get("/api/companies/:companyId", async (req, res) => {
+    const db = await readDb();
     const company = getCompanyById(db, sanitizeText(req.params.companyId, 80));
     if (!company) {
       res.status(404).json({ message: "Company not found." });
@@ -224,8 +224,8 @@ function registerOpportunityRoutes(app) {
     });
   });
 
-  app.get("/api/jobs", (req, res) => {
-    const db = readDb();
+  app.get("/api/jobs", async (req, res) => {
+    const db = await readDb();
     const query = sanitizeText(req.query.q || "", 120).toLowerCase();
     const companyFilter = sanitizeText(req.query.company || "", 120).toLowerCase();
     const locationFilter = sanitizeText(req.query.location || "", 120).toLowerCase();
@@ -267,8 +267,8 @@ function registerOpportunityRoutes(app) {
     res.json({ jobs });
   });
 
-  app.post("/api/companies/:companyId/jobs", requireAuth, requireRole(["recruiter", "admin"]), (req, res) => {
-    const db = readDb();
+  app.post("/api/companies/:companyId/jobs", requireAuth, requireRole(["recruiter", "admin"]), async (req, res) => {
+    const db = await readDb();
     const actor = db.users.find((item) => item.id === req.auth.userId);
     const company = getCompanyById(db, sanitizeText(req.params.companyId, 80));
     if (!company) {
@@ -336,7 +336,7 @@ function registerOpportunityRoutes(app) {
       targetUserId: actor.id,
       metadata: { companyId: company.id, jobId: job.id, title: job.title },
     });
-    writeDb(db);
+    await writeDb(db);
 
     res.status(201).json({
       message: "Job posted successfully.",
@@ -344,8 +344,8 @@ function registerOpportunityRoutes(app) {
     });
   });
 
-  app.patch("/api/jobs/:jobId", requireAuth, requireRole(["recruiter", "admin"]), (req, res) => {
-    const db = readDb();
+  app.patch("/api/jobs/:jobId", requireAuth, requireRole(["recruiter", "admin"]), async (req, res) => {
+    const db = await readDb();
     const actor = db.users.find((item) => item.id === req.auth.userId);
     const job = getJobById(db, sanitizeText(req.params.jobId, 80));
     const company = job ? getCompanyById(db, job.companyId) : null;
@@ -409,13 +409,13 @@ function registerOpportunityRoutes(app) {
       targetUserId: actor.id,
       metadata: { jobId: job.id, fields: Object.keys(req.body || {}) },
     });
-    writeDb(db);
+    await writeDb(db);
 
     res.json({ message: "Job updated.", job: serializeJob(db, job, actor) });
   });
 
-  app.post("/api/jobs/:jobId/apply", requireAuth, requireRole(["user"]), (req, res) => {
-    const db = readDb();
+  app.post("/api/jobs/:jobId/apply", requireAuth, requireRole(["user"]), async (req, res) => {
+    const db = await readDb();
     const applicant = db.users.find((item) => item.id === req.auth.userId);
     const job = getJobById(db, sanitizeText(req.params.jobId, 80));
     const company = job ? getCompanyById(db, job.companyId) : null;
@@ -475,7 +475,7 @@ function registerOpportunityRoutes(app) {
       targetUserId: applicant.id,
       metadata: { applicationId: application.id, companyId: company.id, jobId: job.id },
     });
-    writeDb(db);
+    await writeDb(db);
 
     res.status(201).json({
       message: "Application submitted successfully.",
@@ -483,8 +483,8 @@ function registerOpportunityRoutes(app) {
     });
   });
 
-  app.get("/api/applications/my", requireAuth, (req, res) => {
-    const db = readDb();
+  app.get("/api/applications/my", requireAuth, async (req, res) => {
+    const db = await readDb();
     const actor = db.users.find((item) => item.id === req.auth.userId);
     if (!actor) {
       res.status(404).json({ message: "User not found." });
@@ -503,8 +503,8 @@ function registerOpportunityRoutes(app) {
     res.json({ applications });
   });
 
-  app.get("/api/companies/:companyId/applications", requireAuth, requireRole(["recruiter", "admin"]), (req, res) => {
-    const db = readDb();
+  app.get("/api/companies/:companyId/applications", requireAuth, requireRole(["recruiter", "admin"]), async (req, res) => {
+    const db = await readDb();
     const actor = db.users.find((item) => item.id === req.auth.userId);
     const company = getCompanyById(db, sanitizeText(req.params.companyId, 80));
     if (!company) {
@@ -527,8 +527,8 @@ function registerOpportunityRoutes(app) {
     res.json({ company: serializeCompany(db, company, actor), applications });
   });
 
-  app.get("/api/jobs/:jobId/applications", requireAuth, requireRole(["recruiter", "admin"]), (req, res) => {
-    const db = readDb();
+  app.get("/api/jobs/:jobId/applications", requireAuth, requireRole(["recruiter", "admin"]), async (req, res) => {
+    const db = await readDb();
     const actor = db.users.find((item) => item.id === req.auth.userId);
     const job = getJobById(db, sanitizeText(req.params.jobId, 80));
     const company = job ? getCompanyById(db, job.companyId) : null;
@@ -547,8 +547,8 @@ function registerOpportunityRoutes(app) {
     res.json({ job: serializeJob(db, job, actor), applications });
   });
 
-  app.patch("/api/applications/:applicationId/review", requireAuth, requireRole(["recruiter", "admin"]), (req, res) => {
-    const db = readDb();
+  app.patch("/api/applications/:applicationId/review", requireAuth, requireRole(["recruiter", "admin"]), async (req, res) => {
+    const db = await readDb();
     const actor = db.users.find((item) => item.id === req.auth.userId);
     const application = getApplicationById(db, sanitizeText(req.params.applicationId, 80));
     const job = application ? getJobById(db, application.jobId) : null;
@@ -611,7 +611,7 @@ function registerOpportunityRoutes(app) {
         noteAdded: Boolean(note),
       },
     });
-    writeDb(db);
+    await writeDb(db);
 
     res.json({
       message: "Application review updated.",

@@ -1,10 +1,17 @@
-const fs = require("fs");
+const { Redis } = require("@upstash/redis");
 const {
   DATA_DIR,
   STORAGE_DIR,
   RESUME_DIR,
-  DB_FILE,
 } = require("./config");
+const fs = require("fs");
+
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN,
+});
+
+const DB_KEY = "CAREERS_DB_V1";
 
 const DEFAULT_DB = {
   users: [],
@@ -26,33 +33,35 @@ function normalizeDb(parsed) {
   };
 }
 
+// In a serverless environment, we still need these for temporary resume buffers
 function ensureDirectories() {
   [DATA_DIR, STORAGE_DIR, RESUME_DIR].forEach((dir) => {
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
   });
-
-  if (!fs.existsSync(DB_FILE)) {
-    fs.writeFileSync(DB_FILE, JSON.stringify(DEFAULT_DB, null, 2), "utf8");
-  }
 }
 
-function readDb() {
-  ensureDirectories();
+async function readDb() {
   try {
-    const raw = fs.readFileSync(DB_FILE, "utf8");
-    const parsed = JSON.parse(raw);
-    return normalizeDb(parsed);
+    const data = await redis.get(DB_KEY);
+    if (!data) {
+      await redis.set(DB_KEY, DEFAULT_DB);
+      return normalizeDb(DEFAULT_DB);
+    }
+    return normalizeDb(data);
   } catch (error) {
-    fs.writeFileSync(DB_FILE, JSON.stringify(DEFAULT_DB, null, 2), "utf8");
+    console.error("Redis Read Error:", error);
     return normalizeDb(DEFAULT_DB);
   }
 }
 
-function writeDb(db) {
-  ensureDirectories();
-  fs.writeFileSync(DB_FILE, JSON.stringify(normalizeDb(db), null, 2), "utf8");
+async function writeDb(db) {
+  try {
+    await redis.set(DB_KEY, normalizeDb(db));
+  } catch (error) {
+    console.error("Redis Write Error:", error);
+  }
 }
 
 module.exports = {

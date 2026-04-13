@@ -15,8 +15,8 @@ const {
 } = require("../portal-helpers");
 
 function registerMessagingRoutes(app) {
-  app.get("/api/messaging/identity", requireAuth, (req, res) => {
-    const db = readDb();
+  app.get("/api/messaging/identity", requireAuth, async (req, res) => {
+    const db = await readDb();
     const user = db.users.find((item) => item.id === req.auth.userId);
     if (!user) {
       res.status(404).json({ message: "User not found." });
@@ -32,7 +32,7 @@ function registerMessagingRoutes(app) {
     });
   });
 
-  app.post("/api/messaging/identity", requireAuth, (req, res) => {
+  app.post("/api/messaging/identity", requireAuth, async (req, res) => {
     const publicKey = req.body.publicKey;
     const encryptedPrivateKey = req.body.encryptedPrivateKey;
     const algorithm = sanitizeText(req.body.algorithm || "RSA-OAEP", 60);
@@ -52,7 +52,7 @@ function registerMessagingRoutes(app) {
       return;
     }
 
-    const db = readDb();
+    const db = await readDb();
     const user = db.users.find((item) => item.id === req.auth.userId);
     if (!user) {
       res.status(404).json({ message: "User not found." });
@@ -70,7 +70,7 @@ function registerMessagingRoutes(app) {
       targetUserId: user.id,
       metadata: { algorithm: user.messaging.algorithm },
     });
-    writeDb(db);
+    await writeDb(db);
 
     res.status(201).json({
       message: "Messaging identity saved.",
@@ -82,8 +82,8 @@ function registerMessagingRoutes(app) {
     });
   });
 
-  app.get("/api/messaging/directory", requireAuth, (req, res) => {
-    const db = readDb();
+  app.get("/api/messaging/directory", requireAuth, async (req, res) => {
+    const db = await readDb();
     const user = db.users.find((item) => item.id === req.auth.userId);
     if (!user) {
       res.status(404).json({ message: "User not found." });
@@ -93,8 +93,8 @@ function registerMessagingRoutes(app) {
     res.json({ contacts: getMessagingDirectory(db, user) });
   });
 
-  app.get("/api/messaging/conversations", requireAuth, (req, res) => {
-    const db = readDb();
+  app.get("/api/messaging/conversations", requireAuth, async (req, res) => {
+    const db = await readDb();
     const conversations = db.conversations
       .filter(
         (conversation) =>
@@ -115,8 +115,8 @@ function registerMessagingRoutes(app) {
     res.json({ conversations });
   });
 
-  app.post("/api/messaging/conversations", requireAuth, (req, res) => {
-    const db = readDb();
+  app.post("/api/messaging/conversations", requireAuth, async (req, res) => {
+    const db = await readDb();
     const actor = db.users.find((item) => item.id === req.auth.userId);
     if (!actor) {
       res.status(404).json({ message: "User not found." });
@@ -249,7 +249,7 @@ function registerMessagingRoutes(app) {
         memberCount: memberUserIds.length,
       },
     });
-    writeDb(db);
+    await writeDb(db);
 
     res.status(201).json({
       message: "Encrypted conversation created.",
@@ -257,8 +257,8 @@ function registerMessagingRoutes(app) {
     });
   });
 
-  app.get("/api/messaging/conversations/:conversationId/messages", requireAuth, (req, res) => {
-    const db = readDb();
+  app.get("/api/messaging/conversations/:conversationId/messages", requireAuth, async (req, res) => {
+    const db = await readDb();
     const conversation = findConversationById(
       db,
       sanitizeText(req.params.conversationId, 80)
@@ -283,7 +283,7 @@ function registerMessagingRoutes(app) {
     });
   });
 
-  app.post("/api/messaging/conversations/:conversationId/messages", requireAuth, (req, res) => {
+  app.post("/api/messaging/conversations/:conversationId/messages", requireAuth, async (req, res) => {
     const ciphertext = sanitizeText(req.body.ciphertext, 32000);
     const iv = sanitizeText(req.body.iv, 300);
     const algorithm = sanitizeText(req.body.algorithm || "AES-GCM", 80);
@@ -293,7 +293,7 @@ function registerMessagingRoutes(app) {
       return;
     }
 
-    const db = readDb();
+    const db = await readDb();
     const conversation = findConversationById(
       db,
       sanitizeText(req.params.conversationId, 80)
@@ -336,7 +336,7 @@ function registerMessagingRoutes(app) {
         members: conversation.memberUserIds.length,
       },
     });
-    writeDb(db);
+    await writeDb(db);
 
     res.status(201).json({
       message: "Encrypted message stored.",

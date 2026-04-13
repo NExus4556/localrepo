@@ -63,12 +63,6 @@ registerAdminRoutes(app);
 // Serve static files from the React app
 app.use(express.static(path.join(__dirname, "public")));
 
-// The "catchall" handler: for any request that doesn't
-// match one above, send back React's index.html file.
-app.get(/.*/, (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
-});
-
 app.use((err, req, res, next) => {
   if (err instanceof multer.MulterError) {
     if (err.code === "LIMIT_FILE_SIZE") {
@@ -89,14 +83,24 @@ app.use((err, req, res, next) => {
   res.status(500).json({ message: "Internal server error." });
 });
 
-app.use((_, res) => {
-  res.status(404).json({ message: "Route not found." });
+// The "catchall" handler: for any request that doesn't
+// match one above, send back React's index.html file.
+app.get(/.*/, (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-ensureDirectories();
-ensureDefaultAdminAccount();
-migrateUsersAndCollectionsIfNeeded();
+async function bootstrap() {
+  ensureDirectories();
+  await ensureDefaultAdminAccount();
+  await migrateUsersAndCollectionsIfNeeded();
+  
+  if (process.env.NODE_ENV !== "production") {
+    app.listen(PORT, () => {
+      console.log(`Backend running on port ${PORT}`);
+    });
+  }
+}
 
-app.listen(PORT, () => {
-  console.log(`Backend running on port ${PORT}`);
-});
+bootstrap().catch(console.error);
+
+module.exports = app;

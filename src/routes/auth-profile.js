@@ -63,7 +63,7 @@ const upload = multer({
 });
 
 function registerAuthProfileRoutes(app) {
-  app.post("/api/auth/register", (req, res) => {
+  app.post("/api/auth/register", async (req, res) => {
     const name = sanitizeText(req.body.name, 80);
     const email = normalizeEmail(req.body.email);
     const mobile = normalizeMobile(req.body.mobile);
@@ -86,7 +86,7 @@ function registerAuthProfileRoutes(app) {
       return;
     }
 
-    const db = readDb();
+    const db = await readDb();
     const emailTaken = db.users.some((user) => user.email === email);
     const mobileTaken = db.users.some((user) => user.mobile === mobile);
     if (emailTaken || mobileTaken) {
@@ -133,7 +133,7 @@ function registerAuthProfileRoutes(app) {
       targetUserId: user.id,
       metadata: { role: user.role, email: user.email },
     });
-    writeDb(db);
+    await writeDb(db);
 
     res.status(201).json({
       message:
@@ -156,7 +156,7 @@ function registerAuthProfileRoutes(app) {
     });
   });
 
-  app.post("/api/auth/login", (req, res) => {
+  app.post("/api/auth/login", async (req, res) => {
     const identifier = String(req.body.identifier || "").trim();
     const password = String(req.body.password || "");
     const otp = normalizeTotpCode(req.body.totp || req.body.otp);
@@ -166,7 +166,7 @@ function registerAuthProfileRoutes(app) {
       return;
     }
 
-    const db = readDb();
+    const db = await readDb();
     const user = getUserByIdentifier(db, identifier);
     if (!user || !verifyPassword(password, user.passwordHash)) {
       res.status(401).json({ message: "Invalid credentials." });
@@ -190,7 +190,7 @@ function registerAuthProfileRoutes(app) {
           targetUserId: user.id,
           metadata: { flow: "login" },
         });
-        writeDb(db);
+        await writeDb(db);
       }
 
       if (!otp) {
@@ -230,7 +230,7 @@ function registerAuthProfileRoutes(app) {
         targetUserId: user.id,
         metadata: { method: "totp_setup" },
       });
-      writeDb(db);
+      await writeDb(db);
 
       res.json({
         token: signAuthToken({ sub: user.id, role: user.role }),
@@ -263,7 +263,7 @@ function registerAuthProfileRoutes(app) {
       targetUserId: user.id,
       metadata: { method: "totp" },
     });
-    writeDb(db);
+    await writeDb(db);
 
     res.json({
       token: signAuthToken({ sub: user.id, role: user.role }),
@@ -271,14 +271,14 @@ function registerAuthProfileRoutes(app) {
     });
   });
 
-  app.post("/api/auth/password-reset/request", (req, res) => {
+  app.post("/api/auth/password-reset/request", async (req, res) => {
     const identifier = String(req.body.identifier || "").trim();
     if (!identifier) {
       res.status(400).json({ message: "identifier is required." });
       return;
     }
 
-    const db = readDb();
+    const db = await readDb();
     const user = getUserByIdentifier(db, identifier);
     if (!user) {
       res.status(404).json({ message: "User not found." });
@@ -304,7 +304,7 @@ function registerAuthProfileRoutes(app) {
       targetUserId: user.id,
       metadata: { method: "totp" },
     });
-    writeDb(db);
+    await writeDb(db);
 
     res.json({
       message:
@@ -312,7 +312,7 @@ function registerAuthProfileRoutes(app) {
     });
   });
 
-  app.post("/api/auth/password-reset/confirm", (req, res) => {
+  app.post("/api/auth/password-reset/confirm", async (req, res) => {
     const identifier = String(req.body.identifier || "").trim();
     const otp = normalizeTotpCode(req.body.totp || req.body.otp);
     const newPassword = String(req.body.newPassword || "");
@@ -332,7 +332,7 @@ function registerAuthProfileRoutes(app) {
       return;
     }
 
-    const db = readDb();
+    const db = await readDb();
     const user = getUserByIdentifier(db, identifier);
     if (!user) {
       res.status(404).json({ message: "User not found." });
@@ -358,13 +358,13 @@ function registerAuthProfileRoutes(app) {
       targetUserId: user.id,
       metadata: { method: "totp" },
     });
-    writeDb(db);
+    await writeDb(db);
 
     res.json({ message: "Password reset successful. Please login again." });
   });
 
-  app.get("/api/auth/me", requireAuth, (req, res) => {
-    const db = readDb();
+  app.get("/api/auth/me", requireAuth, async (req, res) => {
+    const db = await readDb();
     const user = db.users.find((item) => item.id === req.auth.userId);
     if (!user) {
       res.status(404).json({ message: "User not found." });
@@ -374,8 +374,8 @@ function registerAuthProfileRoutes(app) {
     res.json({ user: safeUserResponse(user) });
   });
 
-  app.get("/api/profile/me", requireAuth, (req, res) => {
-    const db = readDb();
+  app.get("/api/profile/me", requireAuth, async (req, res) => {
+    const db = await readDb();
     const user = db.users.find((item) => item.id === req.auth.userId);
     if (!user) {
       res.status(404).json({ message: "User not found." });
@@ -391,8 +391,8 @@ function registerAuthProfileRoutes(app) {
     });
   });
 
-  app.put("/api/profile/me", requireAuth, (req, res) => {
-    const db = readDb();
+  app.put("/api/profile/me", requireAuth, async (req, res) => {
+    const db = await readDb();
     const user = db.users.find((item) => item.id === req.auth.userId);
     if (!user) {
       res.status(404).json({ message: "User not found." });
@@ -429,13 +429,13 @@ function registerAuthProfileRoutes(app) {
       targetUserId: user.id,
       metadata: { fields: Object.keys(req.body || {}) },
     });
-    writeDb(db);
+    await writeDb(db);
 
     res.json({ message: "Profile updated.", profile: user.profile });
   });
 
-  app.post("/api/resume/upload", requireAuth, upload.single("resume"), (req, res) => {
-    const db = readDb();
+  app.post("/api/resume/upload", requireAuth, upload.single("resume"), async (req, res) => {
+    const db = await readDb();
     const user = db.users.find((item) => item.id === req.auth.userId);
     if (!user) {
       res.status(404).json({ message: "User not found." });
@@ -484,7 +484,7 @@ function registerAuthProfileRoutes(app) {
         sizeBytes: req.file.size,
       },
     });
-    writeDb(db);
+    await writeDb(db);
 
     res.status(201).json({
       message: "Resume uploaded and encrypted successfully.",
@@ -492,8 +492,8 @@ function registerAuthProfileRoutes(app) {
     });
   });
 
-  app.get("/api/resume/me", requireAuth, (req, res) => {
-    const db = readDb();
+  app.get("/api/resume/me", requireAuth, async (req, res) => {
+    const db = await readDb();
     const user = db.users.find((item) => item.id === req.auth.userId);
     if (!user) {
       res.status(404).json({ message: "User not found." });
@@ -502,8 +502,8 @@ function registerAuthProfileRoutes(app) {
     res.json({ resume: safeResumeMetadata(user.resume) });
   });
 
-  app.post("/api/resume/request-download-otp", requireAuth, (req, res) => {
-    const db = readDb();
+  app.post("/api/resume/request-download-otp", requireAuth, async (req, res) => {
+    const db = await readDb();
     const user = db.users.find((item) => item.id === req.auth.userId);
     if (!user) {
       res.status(404).json({ message: "User not found." });
@@ -522,21 +522,21 @@ function registerAuthProfileRoutes(app) {
       targetUserId: user.id,
       metadata: { method: "totp" },
     });
-    writeDb(db);
+    await writeDb(db);
     res.json({
       message:
         "Use your authenticator app code to continue with resume download.",
     });
   });
 
-  app.post("/api/resume/grant-access", requireAuth, (req, res) => {
+  app.post("/api/resume/grant-access", requireAuth, async (req, res) => {
     const recruiterUserId = String(req.body.recruiterUserId || "").trim();
     if (!recruiterUserId) {
       res.status(400).json({ message: "recruiterUserId is required." });
       return;
     }
 
-    const db = readDb();
+    const db = await readDb();
     const owner = db.users.find((item) => item.id === req.auth.userId);
     const recruiter = db.users.find((item) => item.id === recruiterUserId);
     if (!owner || !owner.resume) {
@@ -561,7 +561,7 @@ function registerAuthProfileRoutes(app) {
       targetUserId: recruiterUserId,
       metadata: { ownerId: owner.id },
     });
-    writeDb(db);
+    await writeDb(db);
 
     res.json({
       message: "Resume access granted.",
@@ -569,7 +569,7 @@ function registerAuthProfileRoutes(app) {
     });
   });
 
-  app.post("/api/resume/download", requireAuth, (req, res) => {
+  app.post("/api/resume/download", requireAuth, async (req, res) => {
     const otp = normalizeTotpCode(req.body.totp || req.body.otp);
     const targetUserId = String(req.body.targetUserId || "").trim();
     if (!otp) {
@@ -577,7 +577,7 @@ function registerAuthProfileRoutes(app) {
       return;
     }
 
-    const db = readDb();
+    const db = await readDb();
     const requester = db.users.find((item) => item.id === req.auth.userId);
     const owner = db.users.find(
       (item) => item.id === (targetUserId || req.auth.userId)
@@ -628,7 +628,7 @@ function registerAuthProfileRoutes(app) {
       targetUserId: owner.id,
       metadata: { method: "totp" },
     });
-    writeDb(db);
+    await writeDb(db);
 
     const safeFilename = String(owner.resume.originalName || "resume.bin").replace(
       /[^a-zA-Z0-9._-]/g,
@@ -639,8 +639,8 @@ function registerAuthProfileRoutes(app) {
     res.send(decrypted);
   });
 
-  app.post("/api/account/request-deletion-otp", requireAuth, (req, res) => {
-    const db = readDb();
+  app.post("/api/account/request-deletion-otp", requireAuth, async (req, res) => {
+    const db = await readDb();
     const user = db.users.find((item) => item.id === req.auth.userId);
     if (!user) {
       res.status(404).json({ message: "User not found." });
@@ -659,20 +659,20 @@ function registerAuthProfileRoutes(app) {
       targetUserId: user.id,
       metadata: { method: "totp" },
     });
-    writeDb(db);
+    await writeDb(db);
     res.json({
       message: "Use your authenticator app code to confirm account deletion.",
     });
   });
 
-  app.post("/api/account/delete", requireAuth, (req, res) => {
+  app.post("/api/account/delete", requireAuth, async (req, res) => {
     const otp = normalizeTotpCode(req.body.totp || req.body.otp);
     if (!otp) {
       res.status(400).json({ message: "totp is required." });
       return;
     }
 
-    const db = readDb();
+    const db = await readDb();
     const user = db.users.find((item) => item.id === req.auth.userId);
     if (!user) {
       res.status(404).json({ message: "User not found." });
@@ -695,7 +695,7 @@ function registerAuthProfileRoutes(app) {
       targetUserId: req.auth.userId,
       metadata: { method: "totp" },
     });
-    writeDb(db);
+    await writeDb(db);
     res.json({ message: "Account deleted successfully." });
   });
 }
