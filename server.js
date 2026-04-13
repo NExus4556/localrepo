@@ -32,7 +32,16 @@ if (CORS_ORIGIN === "*") {
 }
 
 app.use(cors(baseCorsOptions));
-app.use(helmet());
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+        "img-src": ["'self'", "data:", "https://api.qrserver.com"],
+      },
+    },
+  })
+);
 app.use(hpp());
 app.use(express.json({ limit: "2mb" }));
 
@@ -60,36 +69,18 @@ registerOpportunityRoutes(app);
 registerMessagingRoutes(app);
 registerAdminRoutes(app);
 
-// Serve static files from the React app
-app.use(express.static(path.join(__dirname, "public")));
-
-app.use((err, req, res, next) => {
-  if (err instanceof multer.MulterError) {
-    if (err.code === "LIMIT_FILE_SIZE") {
-      res.status(400).json({ message: "Resume file exceeds 5MB limit." });
-      return;
-    }
-
-    res.status(400).json({ message: err.message });
-    return;
-  }
-
-  if (err.message === "Only PDF and DOCX files are allowed.") {
-    res.status(400).json({ message: err.message });
-    return;
-  }
-
-  console.error(err);
-  res.status(500).json({ message: "Internal server error." });
-});
-
-// The "catchall" handler: for any request that doesn't
-// match one above, send back React's index.html file.
-app.get(/.*/, (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
-});
-
 async function bootstrap() {
+  const publicDir = path.join(process.cwd(), "public");
+  
+  // Serve static files from the React app
+  app.use(express.static(publicDir));
+
+  // The "catchall" handler: for any request that doesn't
+  // match one above, send back React's index.html file.
+  app.get(/.*/, (req, res) => {
+    res.sendFile(path.join(publicDir, "index.html"));
+  });
+
   ensureDirectories();
   await ensureDefaultAdminAccount();
   await migrateUsersAndCollectionsIfNeeded();
